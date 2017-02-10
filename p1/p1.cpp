@@ -21,7 +21,7 @@
 // Eigen matrix algebra library
 #include <Eigen/Dense>
 
-#define MAXBONDLENGTH 3.0
+#define MAXBONDLENGTH 4.0
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -39,8 +39,10 @@ struct Atom {
 void print_bond_lengths(const std::vector<Atom> mol, double rmax = MAXBONDLENGTH);
 void print_bond_angles(const std::vector<Atom> mol, double rmax = MAXBONDLENGTH);
 void print_oop_angles(const std::vector<Atom> mol, double rmax = MAXBONDLENGTH);
+void print_dihedral_angles(const std::vector<Atom> mol, double rmax = MAXBONDLENGTH);
 double bond_angle(const Eigen::Vector3d rji, const Eigen::Vector3d rjk, bool normed = true);
 double oop_angle(const Eigen::Vector3d rki, const Eigen::Vector3d rkj, const Eigen::Vector3d rkl, bool normed = true);
+double dihedral_angle(const Eigen::Vector3d rji,const Eigen::Vector3d rjk,const Eigen::Vector3d rkl);
 
 std::vector<Atom> read_geometry(const std::string& filename, bool a2b);
 
@@ -60,6 +62,7 @@ int main(int argc, char *argv[]) {
   print_bond_lengths(atoms);
   print_bond_angles(atoms);
   print_oop_angles(atoms);
+  print_dihedral_angles(atoms);
 
 /*
   auto r1 = atoms[1].xyz;
@@ -215,6 +218,36 @@ void print_oop_angles(const std::vector<Atom> mol, double rmax) {
     }
 }
 
+void print_dihedral_angles(const std::vector<Atom> mol, double rmax) {
+  auto N = mol.size();
+  for (auto j = 0; j < N; j++)
+    for (auto k = 0; k < j; k++) {
+      if (k != j) {
+        V3d rjk = mol[k].xyz - mol[j].xyz;
+        auto djk = rjk.norm();
+        if (djk < rmax) {
+          for (auto i = 0; i < N; i++) {
+            if ((i != j) && (i != k)) {
+              V3d rji = mol[i].xyz - mol[j].xyz;
+              auto dji = rji.norm();
+              if (dji < rmax) {
+                for (auto l = 0; l < N; l++) {
+                  if ((l != k) && (l != i) && (l != j)) {
+                    V3d rkl = mol[l].xyz - mol[k].xyz;
+                    auto dkl = rkl.norm();
+                    if (dkl < rmax) {
+                      cout << "τ" << i << j << k << l << " = " << dihedral_angle(rji,rjk,rkl) << endl;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+}
+
 
 double bond_angle(const Eigen::Vector3d rji, const Eigen::Vector3d rjk, bool normed) {
   auto jidotjk = rji.dot(rjk);
@@ -236,4 +269,14 @@ double oop_angle(const Eigen::Vector3d rki, const Eigen::Vector3d rkj, const Eig
     auto dki = rki.norm();
     return asin(num/dki) * 180.0 / M_PI; 
   }
+}
+
+
+double dihedral_angle(const Eigen::Vector3d rji,const Eigen::Vector3d rjk,const Eigen::Vector3d rkl) {
+  //TODO: compare n1 x n2 to rjk to determine sign of angle
+  V3d n1 = rji.cross(rjk);
+  n1.normalize();
+  V3d n2 = -1.0 * rjk.cross(rkl);
+  n2.normalize();
+  return acos(n1.dot(n2)) * 180.0 / M_PI;
 }
