@@ -17,10 +17,11 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
-
+#include <typeinfo>
 // Eigen matrix algebra library
 #include <Eigen/Dense>
 
+#define MAXBONDLENGTH 3.0
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -29,31 +30,46 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
         Matrix;  // import dense, dynamically sized Matrix type from Eigen;
                  // this is a matrix with row-major storage (http://en.wikipedia.org/wiki/Row-major_order)
                  // to meet the layout of the integrals returned by the Libint integral library
-
+typedef Eigen::Matrix<double,3,1> V3d;
 struct Atom {
     int atomic_number;
     Eigen::Vector3d xyz;
 };
 
-void print_bond_lengths(const std::vector<Atom> mol);
-void print_bond_angles(const std::vector<Atom> mol, double rmax = 3.0);
-double angle(const Eigen::Vector3d ji, const Eigen::Vector3d jk);
+void print_bond_lengths(const std::vector<Atom> mol, double rmax = MAXBONDLENGTH);
+void print_bond_angles(const std::vector<Atom> mol, double rmax = MAXBONDLENGTH);
+void print_oop_angles(const std::vector<Atom> mol, double rmax = MAXBONDLENGTH);
+double bond_angle(const Eigen::Vector3d rji, const Eigen::Vector3d rjk, bool normed = true);
+double oop_angle(const Eigen::Vector3d rki, const Eigen::Vector3d rkj, const Eigen::Vector3d rkl, bool normed = true);
+
 std::vector<Atom> read_geometry(const std::string& filename, bool a2b);
+
 int main(int argc, char *argv[]) {
 
   bool a2b = false;
-    // read geometry from a file; by default read from h2o.xyz, else take filename (.xyz) from the command line
-    const auto filename = (argc > 1) ? argv[1] : "h2o.xyz";
-    std::vector<Atom> atoms = read_geometry(filename,a2b);
-    // count the number of electrons
-    auto nelectron = 0;
-    for (auto i = 0; i < atoms.size(); ++i)
-      nelectron += atoms[i].atomic_number;
-    const auto ndocc = nelectron / 2;
-    print_bond_lengths(atoms);
-    print_bond_angles(atoms);
+  // read geometry from a file; by default read from h2o.xyz, else take filename (.xyz) from the command line
+  const auto filename = (argc > 1) ? argv[1] : "acetaldehyde.xyz";
+  std::vector<Atom> atoms = read_geometry(filename,a2b);
 
+  // count the number of electrons
+  auto nelectron = 0;
+  for (auto i = 0; i < atoms.size(); ++i)
+    nelectron += atoms[i].atomic_number;
+  const auto ndocc = nelectron / 2;
 
+  print_bond_lengths(atoms);
+  print_bond_angles(atoms);
+  print_oop_angles(atoms);
+
+/*
+  auto r1 = atoms[1].xyz;
+  V3d r1b = atoms[1].xyz;
+  Eigen::Vector3d r1c = atoms[1].xyz;
+
+  cout << typeid(r1).name() << endl;
+  cout << typeid(r1b).name() << endl;
+  cout << typeid(r1c).name() << endl;
+*/
   return 0;
 }
 
@@ -125,46 +141,99 @@ std::vector<Atom> read_geometry(const std::string& filename, bool a2b) {
     throw "only .xyz files are accepted";
 }
 
-void print_bond_lengths(const std::vector<Atom> mol) {
+void print_bond_lengths(const std::vector<Atom> mol, double rmax) {
   auto enuc = 0.0;
   for (auto i = 0; i < mol.size(); i++)
     for (auto j = 0; j < i; j++) {
       auto rij = mol[i].xyz - mol[j].xyz;
       auto r = rij.norm();
       enuc += mol[i].atomic_number * mol[j].atomic_number / r;
-      cout << "r" << i << j << " = " << r << endl;
+      if (r < rmax) {
+        cout << "r" << i << j << " = " << r << endl;
+      }
     }
 //  cout << "E_nuc = " << enuc << endl;
 }
 
 void print_bond_angles(const std::vector<Atom> mol, double rmax) {
-  for (auto i = 0; i < mol.size(); i++)
-    for (auto j = 0; j < i; j++) {
-      auto rij = mol[j].xyz - mol[i].xyz;
-      auto dij = rij.norm();
-      for (auto k = 0; k < j; k++) {
-        auto rjk = mol[k].xyz - mol[j].xyz;
-        auto rki = mol[i].xyz - mol[k].xyz;
-        auto djk = rjk.norm();
-        auto dki = rki.norm();
-        if (dij < rmax) {
-          if (djk < rmax) {
-            cout << "θ" << i << j << k << " = " << angle(-1.0*rij,rjk) << endl;
+  auto N = mol.size();
+  for (auto i = 0; i < N; i++)
+    for (auto j = 0; j < N; j++) {
+      if (j != i) {
+// can't use auto here if rji is to be normalized?
+//        auto rji = mol[i].xyz - mol[j].xyz;
+        V3d rji = mol[i].xyz - mol[j].xyz;
+        auto dji = rji.norm();
+        if (dji < rmax) {
+          rji.normalize();
+          for (auto k = 0; k < i; k++) {
+            if (k != j) {
+//              auto rjk = mol[k].xyz - mol[j].xyz;
+              V3d rjk = mol[k].xyz - mol[j].xyz;
+              auto djk = rjk.norm();
+              if (djk < rmax) {
+                rjk.normalize();
+                cout << "φ" << i << j << k << " = " << bond_angle(rji,rjk) << endl;
+              }
+            }
           }
-          if (dki < rmax) {
-            cout << "θ" << j << i << k << " = " << angle(rij,-1.0*rki) << endl;
-          }
-        } else if ((djk < rmax) && (dki < rmax)) {
-            cout << "θ" << i << k << j << " = " << angle(rki,-1.0*rjk) << endl;
         }
-
       }
     }
 }
 
-double angle(const Eigen::Vector3d ji, const Eigen::Vector3d jk) {
-  auto jidotjk = ji.dot(jk);
-  auto jijk = ji.norm()*jk.norm();
-  auto tijk = acos(jidotjk/jijk) * 180.0 / M_PI; 
-  return tijk;
+void print_oop_angles(const std::vector<Atom> mol, double rmax) {
+  auto N = mol.size();
+  for (auto k = 0; k < N; k++)
+    for (auto i = 0; i < N; i++) {
+      if (i != k) {
+        V3d rki = mol[i].xyz - mol[k].xyz;
+        auto dki = rki.norm();
+        if (dki < rmax) {
+          rki.normalize();
+          for (auto j = 0; j < N; j++) {
+            if ((j != k) && (j != i)) {
+              V3d rkj = mol[j].xyz - mol[k].xyz;
+              auto dkj = rkj.norm();
+              if (dkj < rmax) {
+                rkj.normalize();
+                for (auto l = 0; l < N; l++) {
+                  if ((l != k) && (l != i) && (l != j)) {
+                    V3d rkl = mol[l].xyz - mol[k].xyz;
+                    auto dkl = rkl.norm();
+                    if (dkl < rmax) {
+                      rkl.normalize();
+                      cout << "θ" << i << j << k << l << " = " << oop_angle(rki,rkj,rkl) << endl;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+}
+
+
+double bond_angle(const Eigen::Vector3d rji, const Eigen::Vector3d rjk, bool normed) {
+  auto jidotjk = rji.dot(rjk);
+  if (normed) {
+    return acos(jidotjk) * 180.0 / M_PI; 
+  } else {
+    auto jijk = rji.norm()*rjk.norm();
+    return acos(jidotjk/jijk) * 180.0 / M_PI; 
+  }
+}
+
+double oop_angle(const Eigen::Vector3d rki, const Eigen::Vector3d rkj, const Eigen::Vector3d rkl, bool normed) {
+  auto kjcrosskl = rkj.cross(rkl);
+  kjcrosskl.normalize();
+  auto num = kjcrosskl.dot(rki);
+  if (normed) {
+    return asin(num) * 180.0 / M_PI; 
+  } else {
+    auto dki = rki.norm();
+    return asin(num/dki) * 180.0 / M_PI; 
+  }
 }
