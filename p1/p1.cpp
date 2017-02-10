@@ -21,6 +21,10 @@
 // Eigen matrix algebra library
 #include <Eigen/Dense>
 
+using std::cout;
+using std::cerr;
+using std::endl;
+
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
         Matrix;  // import dense, dynamically sized Matrix type from Eigen;
                  // this is a matrix with row-major storage (http://en.wikipedia.org/wiki/Row-major_order)
@@ -31,12 +35,12 @@ struct Atom {
     Eigen::Vector3d xyz;
 };
 
+void print_bond_lengths(const std::vector<Atom> mol);
+void print_bond_angles(const std::vector<Atom> mol, double rmax = 3.0);
+double angle(const Eigen::Vector3d ji, const Eigen::Vector3d jk);
 std::vector<Atom> read_geometry(const std::string& filename, bool a2b);
 int main(int argc, char *argv[]) {
 
-  using std::cout;
-  using std::cerr;
-  using std::endl;
   bool a2b = false;
     // read geometry from a file; by default read from h2o.xyz, else take filename (.xyz) from the command line
     const auto filename = (argc > 1) ? argv[1] : "h2o.xyz";
@@ -46,18 +50,8 @@ int main(int argc, char *argv[]) {
     for (auto i = 0; i < atoms.size(); ++i)
       nelectron += atoms[i].atomic_number;
     const auto ndocc = nelectron / 2;
-
-    // compute the nuclear repulsion energy
-    auto enuc = 0.0;
-    for (auto i = 0; i < atoms.size(); i++)
-//      for (auto j = i + 1; j < atoms.size(); j++) {
-      for (auto j = 0; j < i; j++) {
-        auto rij = atoms[i].xyz - atoms[j].xyz;
-        auto r = rij.norm();
-        enuc += atoms[i].atomic_number * atoms[j].atomic_number / r;
-        cout << "r" << i << j << " = " << r << endl;
-      }
-    cout << "E_nuc = " << enuc << endl;
+    print_bond_lengths(atoms);
+    print_bond_angles(atoms);
 
 
   return 0;
@@ -129,4 +123,48 @@ std::vector<Atom> read_geometry(const std::string& filename, bool a2b) {
     return read_dotxyz(iss, a2b);
   else
     throw "only .xyz files are accepted";
+}
+
+void print_bond_lengths(const std::vector<Atom> mol) {
+  auto enuc = 0.0;
+  for (auto i = 0; i < mol.size(); i++)
+    for (auto j = 0; j < i; j++) {
+      auto rij = mol[i].xyz - mol[j].xyz;
+      auto r = rij.norm();
+      enuc += mol[i].atomic_number * mol[j].atomic_number / r;
+      cout << "r" << i << j << " = " << r << endl;
+    }
+//  cout << "E_nuc = " << enuc << endl;
+}
+
+void print_bond_angles(const std::vector<Atom> mol, double rmax) {
+  for (auto i = 0; i < mol.size(); i++)
+    for (auto j = 0; j < i; j++) {
+      auto rij = mol[j].xyz - mol[i].xyz;
+      auto dij = rij.norm();
+      for (auto k = 0; k < j; k++) {
+        auto rjk = mol[k].xyz - mol[j].xyz;
+        auto rki = mol[i].xyz - mol[k].xyz;
+        auto djk = rjk.norm();
+        auto dki = rki.norm();
+        if (dij < rmax) {
+          if (djk < rmax) {
+            cout << "θ" << i << j << k << " = " << angle(-1.0*rij,rjk) << endl;
+          }
+          if (dki < rmax) {
+            cout << "θ" << j << i << k << " = " << angle(rij,-1.0*rki) << endl;
+          }
+        } else if ((djk < rmax) && (dki < rmax)) {
+            cout << "θ" << i << k << j << " = " << angle(rki,-1.0*rjk) << endl;
+        }
+
+      }
+    }
+}
+
+double angle(const Eigen::Vector3d ji, const Eigen::Vector3d jk) {
+  auto jidotjk = ji.dot(jk);
+  auto jijk = ji.norm()*jk.norm();
+  auto tijk = acos(jidotjk/jijk) * 180.0 / M_PI; 
+  return tijk;
 }
