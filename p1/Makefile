@@ -6,10 +6,25 @@ export LIBRARY_PATH := $(GCC_ROOT)/lib64:$(LIBRARY_PATH)
 export LD_LIBRARY_PATH := $(GCC_ROOT)/lib64:$(LD_LIBRARY_PATH)
 export LD_RUN_PATH := $(GCC_ROOT)/lib64:$(LD_RUN_PATH)
 export LIBPATH := $(GCC_ROOT)/lib/gcc/x86_64-unknown-linux-gnu/5.4.0:$(LIBPATH)
-CXXFLAGS = -v -I/ihome/crc/install/intel-2017.1.132/eigen/3.3.1/include/eigen3 -std=c++11
-targets=p1
+CXXFLAGS = -I/ihome/crc/install/intel-2017.1.132/eigen/3.3.1/include/eigen3 -std=c++11
+#
+#targets=p1
+#all: $(targets)
+#
+#clean:
+#	rm -vf *~ $(targets) *.o
 
-all: $(targets)
+SOURCES=p1.cpp molecule.cpp
+OBJECTS=$(SOURCES:.cpp=.o)
+EXECUTABLE=p1
+
+all: $(SOURCES) $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $@
+
+.cpp.o:
+	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 clean:
-	rm -vf *~ $(targets) *.o
+	rm -vf $(OBJECTS) $(EXECUTABLE)

@@ -19,13 +19,16 @@
 #include <vector>
 #include <typeinfo>
 #include "symbols.h"
+#include "molecule.h"
 // Eigen matrix algebra library
 #include <Eigen/Dense>
 
-#define MAXBONDLENGTH 4.0
+#define MAXBONDLENGTH 3.0
 using std::cout;
 using std::cerr;
 using std::endl;
+
+Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
         Matrix;  // import dense, dynamically sized Matrix type from Eigen;
@@ -44,7 +47,9 @@ void print_dihedral_angles(const std::vector<Atom> mol, double rmax = MAXBONDLEN
 double bond_angle(const Eigen::Vector3d rji, const Eigen::Vector3d rjk, bool normed = true);
 double oop_angle(const Eigen::Vector3d rki, const Eigen::Vector3d rkj, const Eigen::Vector3d rkl, bool normed = true);
 double dihedral_angle(const Eigen::Vector3d rji,const Eigen::Vector3d rjk,const Eigen::Vector3d rkl);
-
+V3d center_of_mass(const std::vector<Atom> mol);
+void translate(std::vector<Atom> &mol, V3d txyz);
+void print_xyz(const std::vector<Atom> mol);
 std::vector<Atom> read_geometry(const std::string& filename, bool a2b);
 
 int main(int argc, char *argv[]) {
@@ -59,11 +64,17 @@ int main(int argc, char *argv[]) {
   for (auto i = 0; i < atoms.size(); ++i)
     nelectron += atoms[i].atomic_number;
   const auto ndocc = nelectron / 2;
-
+  
+  cout << atoms[5].xyz.array() * atoms[6].xyz.array() << endl;
   print_bond_lengths(atoms);
   print_bond_angles(atoms);
   print_oop_angles(atoms);
   print_dihedral_angles(atoms);
+  print_xyz(atoms);
+  auto txyz = center_of_mass(atoms);
+  cout << txyz.transpose() << endl;
+  translate(atoms, -1*txyz);
+  print_xyz(atoms);
 
 /*
   auto r1 = atoms[1].xyz;
@@ -95,23 +106,20 @@ std::vector<Atom> read_dotxyz(std::istream& is, bool a2b) {
     double x, y, z;
     is >> element_symbol >> x >> y >> z;
 
-    // 
     int Z;
+    // if given as numeric value, convert to int
     if (isdigit(element_symbol[0])) {
       Z = stoi(element_symbol);
     } else {
-    if (element_symbol == "H")
-      Z = 1;
-    else if (element_symbol == "C")
-      Z = 6;
-    else if (element_symbol == "O")
-      Z = 8;
-    else {
-      std::cerr << "read_dotxyz: element symbol \"" << element_symbol << "\" is not recognized" << std::endl;
-      throw "Did not recognize element symbol in .xyz file";
+    // if given as symbol, use map to get value
+      try {
+        Z = symbolToZ.at(element_symbol);
+      } catch (std::exception& oe) {
+        cerr << "\nError: element " << element_symbol << " not recognized\n" << oe.what() << endl;
+        throw "Did not recognize element symbol in .xyz file";
+      }
     }
-    }
-
+  
     atoms[i].atomic_number = Z;
 
     // .xyz files report Cartesian coordinates in angstroms; convert to bohr
@@ -156,7 +164,7 @@ void print_bond_lengths(const std::vector<Atom> mol, double rmax) {
         cout << "r" << i << j << " = " << r << endl;
       }
     }
-//  cout << "E_nuc = " << enuc << endl;
+  cout << "E_nuc = " << enuc << endl;
 }
 
 void print_bond_angles(const std::vector<Atom> mol, double rmax) {
@@ -249,7 +257,30 @@ void print_dihedral_angles(const std::vector<Atom> mol, double rmax) {
     }
 }
 
+V3d center_of_mass(const std::vector<Atom> mol) {
+  V3d xyzcom = V3d::Zero();
+  auto mtot = 0.0;
+  for (auto i = 0; i < mol.size(); i++) {
+    auto mi = atomicMass[mol[i].atomic_number];
+    xyzcom += mi * mol[i].xyz;
+    mtot += mi;
+  }
+  return xyzcom / mtot;
+}
 
+void translate(std::vector<Atom> &mol, V3d txyz) {
+  for (auto i = 0; i < mol.size(); i++) {
+    mol[i].xyz += txyz;
+  }
+}
+
+void print_xyz(const std::vector<Atom> mol) {
+  cout.precision(4);
+  for (auto i = 0; i < mol.size(); i++) {
+    //cout << mol[i].atomic_number << "\t" << mol[i].xyz.transpose().format(HeavyFmt) << endl;
+    cout << mol[i].atomic_number << "\t" << mol[i].xyz.transpose() << endl;
+  }
+}
 double bond_angle(const Eigen::Vector3d rji, const Eigen::Vector3d rjk, bool normed) {
   auto jidotjk = rji.dot(rjk);
   if (normed) {
