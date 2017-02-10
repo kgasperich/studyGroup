@@ -191,8 +191,8 @@ void print_oop_angles(const std::vector<Atom> mol, double rmax) {
         auto dki = rki.norm();
         if (dki < rmax) {
           rki.normalize();
-          for (auto j = 0; j < N; j++) {
-            if ((j != k) && (j != i)) {
+          for (auto j = 0; j < i; j++) {
+            if (j != k) {
               V3d rkj = mol[j].xyz - mol[k].xyz;
               auto dkj = rkj.norm();
               if (dkj < rmax) {
