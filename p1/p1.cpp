@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <vector>
 #include <typeinfo>
+#include "symbols.h"
 // Eigen matrix algebra library
 #include <Eigen/Dense>
 
