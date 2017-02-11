@@ -15,7 +15,10 @@ using std::endl;
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor> Mx3d;
 typedef Eigen::Matrix<double, 3, 3, Eigen::RowMajor> M33d;
+typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vxd;
+typedef Eigen::Matrix<int, Eigen::Dynamic, 1> Vxi;
 typedef Eigen::Matrix<double, 3, 1> V3d;
+typedef Eigen::SelfAdjointEigenSolver<M33d> EigSol3d;
 
 class Molecule {
   public:
@@ -23,13 +26,15 @@ class Molecule {
     int znuc;
     int nelec;
     double mass;
-    std::vector<int> zvals;
-    std::vector<double> masses;
+    Vxi zvals;
+    Vxd masses;
     std::vector<std::string> elnames;
     Mx3d xyz;
     std::string comment;
 
     M33d moi_tensor();
+    EigSol3d moi_eigs();
+    V3d moi_moms();
     int charge();
     void print_xyz();
     void print_zvals();

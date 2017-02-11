@@ -4,20 +4,9 @@
 #include <iomanip>
 #include <vector>
 #include <string>
-#include <algorithm>
+//#include <algorithm>
 #include <Eigen/Dense>
 #include <cmath>
-/*
-typedef Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor> Mx3d;
-typedef Eigen::Matrix<double, 3, 1> V3d;
-
-
-int natom;
-int charge;
-std::vector<int> zvals;
-std::vector<std::string> elnames;
-Mx3d xyz;
-*/
 
 int Molecule::charge() {
   return znuc - nelec;
@@ -40,6 +29,32 @@ void Molecule::print_xyz() {
       << SW(8)  << xyz(i,2)
       << endl;
   }
+}
+
+M33d Molecule::moi_tensor() {
+  M33d I = M33d::Zero();
+  auto Irr = (((xyz.rowwise().squaredNorm()).cwiseProduct(masses))).sum();
+  for (auto i=0; i < 3; i++) {
+    auto Imi = xyz.col(i).cwiseProduct(masses);
+    for (auto j=0; j < i; j++) {
+      auto Iij = (Imi.cwiseProduct(xyz.col(j))).sum();
+      I(i,j) = Iij;
+      I(j,i) = Iij;
+    }
+    auto Iii = (Imi.cwiseProduct(xyz.col(i))).sum();
+    I(i,i) = Irr - Iii;
+  }
+  return I;
+}
+
+EigSol3d Molecule::moi_eigs() {
+  M33d I = moi_tensor();
+  return EigSol3d(I);
+}
+
+V3d Molecule::moi_moms() {
+  M33d I = moi_tensor();
+  return EigSol3d(I).eigenvalues();
 }
 
 void Molecule::translate(V3d txyz) {
