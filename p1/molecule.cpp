@@ -57,6 +57,12 @@ V3d Molecule::moi_moms() {
   return EigSol3d(I).eigenvalues();
 }
 
+//in cm^-1
+V3d Molecule::rot_const() {
+  V3d Ii = moi_moms();
+  return Ii.array().inverse() * planckConstantJs / (8.0 * M_PI * M_PI * speedOfLight) /(amu_to_kg ) * (m_to_bohr * m_to_bohr) / 100.0;
+}
+
 void Molecule::translate(V3d txyz) {
   for (auto i=0; i < natom; i++) {
     xyz.row(i) += txyz.transpose();

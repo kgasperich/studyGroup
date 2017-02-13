@@ -28,7 +28,6 @@ using std::cerr;
 using std::endl;
 
 
-std::vector<Atom> read_geometry(const std::string& filename, bool a2b);
 
 int main(int argc, char *argv[]) {
 
@@ -187,8 +186,15 @@ int main(int argc, char *argv[]) {
   cout << "\nPrincipal moments of inertia (amu*Å^2):" << endl;
   cout << pMOI / angstrom_to_bohr / angstrom_to_bohr << endl;
 
-  cout << "\nPrincipal moments of inertia (amu*Å^2):" << endl;
+  cout << "\nPrincipal moments of inertia (g*cm^2):" << endl;
   cout << std::scientific << pMOI * amu_to_g / angstrom_to_bohr / angstrom_to_bohr * 1.0E-16 << endl;
+
+  auto rotconst = mol.rot_const().transpose();
+  cout << "\nRotational constants (MHz):" << endl;
+  cout << std::scientific << rotconst * speedOfLight * 100 * 1E-06 << endl;
+
+  cout << "\nRotational constants (cm^-1):" << endl;
+  cout << std::scientific << rotconst << endl;
 
 /*
   cout << typeid(pMOI).name() << endl;

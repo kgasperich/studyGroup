@@ -32,6 +32,7 @@ class Molecule {
     Mx3d xyz;
     std::string comment;
 
+    V3d rot_const();
     M33d moi_tensor();
     EigSol3d moi_eigs();
     V3d moi_moms();
