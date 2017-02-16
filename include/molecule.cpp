@@ -7,6 +7,7 @@
 //#include <algorithm>
 #include <Eigen/Dense>
 #include <cmath>
+#include <stdexcept>
 
 int Molecule::charge() {
   return znuc - nelec;
@@ -149,8 +150,31 @@ void Molecule::read_dotxyz(std::istream& is) {
   for (auto i = 0; i < natom; i++) {
     std::string element_symbol;
     double x, y, z;
-    is >> element_symbol >> x >> y >> z;
+//    is >> element_symbol >> x >> y >> z;
 
+//    test
+    if (!(is >> element_symbol)) {
+      cerr << "problem reading identity of atom number " << i+1 << endl;
+      if (i == (natom-1)) {
+        cerr << "coordinates should start on line 3 of .xyz file" << endl;
+      }
+      throw std::runtime_error("check input");
+    }
+    if (!(is >> x)) {
+      cerr << "problem reading x coordinate of atom number " << i+1 << endl;
+      throw std::runtime_error("check input");
+    }
+    if (!(is >> y)) {
+      cerr << "problem reading y coordinate of atom number " << i+1 << endl;
+      throw std::runtime_error("check input");
+    }
+    if (!(is >> z)) {
+      cerr << "problem reading z coordinate of atom number " << i+1 << endl;
+      throw std::runtime_error("check input");
+    }
+
+
+//     end test
     // if given as numeric value, convert to int
     if (isdigit(element_symbol[0])) {
       zvals[i] = stoi(element_symbol);
@@ -160,7 +184,7 @@ void Molecule::read_dotxyz(std::istream& is) {
         zvals[i] = symbolToZ.at(element_symbol);
       } catch (std::exception& oe) {
         cerr << "\nError: element " << element_symbol << " not recognized\n" << oe.what() << endl;
-        throw "Did not recognize element symbol in .xyz file";
+        throw std::runtime_error("Did not recognize element symbol in .xyz file");
       }
     }
     elnames[i] = elementSymbols[zvals[i]];
@@ -192,6 +216,6 @@ Molecule::Molecule(const std::string& filename): mass(0), znuc(0), nelec(0) {
   if ( filename.rfind(".xyz") != std::string::npos)
     read_dotxyz(iss);
   else
-    throw "only .xyz files are accepted";
+    throw std::runtime_error("only .xyz files are accepted");
 }
 
