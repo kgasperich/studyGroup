@@ -44,9 +44,8 @@ int main(int argc, char *argv[]) {
   cout << "\neigvals (Eh/(bohr^2 * amu)):" << endl;
   cout << hessEigVals << endl;
 
-  auto freq = hessEigVals.cwiseSqrt() * planckConstantJs 
-    /(4 * M_PI * M_PI * speedOfLight * 100 *sqrt(Me_to_kg * amu_to_kg)) 
-    * m_to_bohr * m_to_bohr;
+  auto fConv = sqrt(hartree_to_J * m_to_bohr * m_to_bohr / amu_to_kg)/(2.0 * M_PI * speedOfLight * 100);
+  auto freq = hessEigVals.cwiseSqrt() * fConv;
   cout << "\nfrequencies (cm^-1):" << endl;
   cout << freq << endl;
 
