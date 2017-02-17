@@ -15,6 +15,7 @@
 
 #include <Eigen/Dense>
 
+#define RMAX 4.0
 using std::cout;
 using std::cerr;
 using std::endl;

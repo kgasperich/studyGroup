@@ -14,7 +14,7 @@ CXXFLAGS = -I../include -I/ihome/crc/install/intel-2017.1.132/eigen/3.3.1/includ
 #clean:
 #	rm -vf *~ $(targets) *.o
 
-SOURCES=p2.cpp ../include/molecule.cpp
+SOURCES=p2.cpp ../include/molecule.cpp ../include/symbols.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=p2
 

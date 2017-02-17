@@ -214,13 +214,13 @@ void Molecule::read_dotxyz(std::istream& is) {
     if (isdigit(element_symbol[0])) {
       zvals[i] = stoi(element_symbol);
     } else {
-    // if given as symbol, use map to get value
-      try {
-        zvals[i] = symbolToZ.at(element_symbol);
-      } catch (std::exception& oe) {
-        cerr << "\nError: element " << element_symbol << " not recognized\n" << oe.what() << endl;
-        throw std::runtime_error("Did not recognize element symbol in .xyz file");
-      }
+    // if given as symbol, get value
+//      try {
+        zvals[i] = symbolToZ(element_symbol);
+//      } catch (std::exception& oe) {
+//        cerr << "\nError: element " << element_symbol << " not recognized\n" << oe.what() << endl;
+//        throw std::runtime_error("Did not recognize element symbol in .xyz file");
+//      }
     }
     elnames[i] = elementSymbols[zvals[i]];
     masses[i] = atomicMassIso[zvals[i]];
