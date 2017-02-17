@@ -13,6 +13,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Mxxd;
 typedef Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor> Mx3d;
 typedef Eigen::Matrix<double, 3, 3, Eigen::RowMajor> M33d;
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vxd;
@@ -31,7 +32,10 @@ class Molecule {
     std::vector<std::string> elnames;
     Mx3d xyz;
     std::string comment;
-
+    Mxxd hess;
+    Mxxd hess_mw;
+ 
+    void testfunction();
     V3d rot_const();
     M33d moi_tensor();
     EigSol3d moi_eigs();
@@ -45,10 +49,12 @@ class Molecule {
     double angle(int n1, int n2, int n3);
     double oop(int n1, int n2, int n3, int n4);
     double dihedral(int n1, int n2, int n3, int n4);
-    void read_dotxyz(std::istream& is);
+    void read_hessian(const std::string& filename);
+    void massweighthessian();
     Molecule(const std::string& filename);
-    Molecule(int n, int q);
     Molecule();
     ~Molecule();
+  private:
+    void read_dotxyz(std::istream& is);
 };
 #endif

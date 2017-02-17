@@ -121,6 +121,41 @@ Molecule::Molecule(){ }
 
 Molecule::~Molecule(){ }
 
+void Molecule::read_hessian(const std::string& filename) {
+  std::cout << "Reading hessian from " << filename << std::endl;
+  hess.resize(3*natom,3*natom);
+
+  std::ifstream is(filename);
+  assert(is.good());
+
+  std::ostringstream oss;
+  oss << is.rdbuf();
+  std::istringstream iss(oss.str());
+  
+  int natom_hess;
+  if (!(iss >> natom_hess)) {
+    throw;
+    if (natom_hess != natom) throw;
+  }
+  for (auto i=0; i < 3*natom; i++) {
+    for (auto j=0; j < 3*natom; j++) {
+      if (!(iss >> hess(i,j))) {
+        throw;
+      }
+    }
+  }
+//  this->massweighthessian();
+  massweighthessian();
+}
+
+void Molecule::massweighthessian() {
+  hess_mw = hess;
+  for (auto i=0; i < natom; i++) {
+    hess_mw.block(3*i,0,3,3*natom) /= sqrt(masses[i]);
+    hess_mw.block(0,3*i,3*natom,3) /= sqrt(masses[i]);
+  }
+}
+
 void Molecule::read_dotxyz(std::istream& is) {
   // line 1 = # of atoms
   int l1;
@@ -196,6 +231,7 @@ void Molecule::read_dotxyz(std::istream& is) {
   }
   if(a2b){xyz *= angstrom_to_bohr;}
 }
+
 
 Molecule::Molecule(const std::string& filename): mass(0), znuc(0), nelec(0) {
 
