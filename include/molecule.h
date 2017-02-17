@@ -20,6 +20,7 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vxd;
 typedef Eigen::Matrix<int, Eigen::Dynamic, 1> Vxi;
 typedef Eigen::Matrix<double, 3, 1> V3d;
 typedef Eigen::SelfAdjointEigenSolver<M33d> EigSol3d;
+typedef Eigen::SelfAdjointEigenSolver<Mxxd> EigSolxd;
 
 class Molecule {
   public:

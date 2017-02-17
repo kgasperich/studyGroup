@@ -2,7 +2,6 @@
  * Crawford exercise 2
  */
 
-// standard C++ headers
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -10,10 +9,12 @@
 #include <iomanip>
 #include <vector>
 #include <typeinfo>
-//#include "symbols.h"
+
+#include "symbols.h"
 #include "molecule.h"
-// Eigen matrix algebra library
+
 #include <Eigen/Dense>
+
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -36,6 +37,18 @@ int main(int argc, char *argv[]) {
 
   cout << "\nmass-weighted hessian:" << endl;
   cout << mol.hess_mw << endl;
+
+  EigSolxd hessEigSol(mol.hess_mw);
+  auto hessEigVals = hessEigSol.eigenvalues();
+  cout << "\neigvals (Eh/(bohr^2 * amu)):" << endl;
+  cout << hessEigVals << endl;
+
+  auto freq = hessEigVals.cwiseSqrt() * planckConstantJs 
+    /(4 * M_PI * M_PI * speedOfLight * 100 *sqrt(Me_to_kg * amu_to_kg)) 
+    * m_to_bohr * m_to_bohr;
+  cout << "\nfrequencies (cm^-1):" << endl;
+  cout << freq << endl;
+
   return 0;
 }
 
