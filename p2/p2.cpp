@@ -41,6 +41,8 @@ int main(int argc, char *argv[]) {
 
   EigSolxd hessEigSol(mol.hess_mw);
   auto hessEigVals = hessEigSol.eigenvalues();
+  auto hessEigVecs = hessEigSol.eigenvectors();
+
   cout << "\neigvals (Eh/(bohr^2 * amu)):" << endl;
   cout << hessEigVals << endl;
 
@@ -49,6 +51,7 @@ int main(int argc, char *argv[]) {
   cout << "\nfrequencies (cm^-1):" << endl;
   cout << freq << endl;
 
+  cout << hessEigVecs << endl;
   return 0;
 }
 
